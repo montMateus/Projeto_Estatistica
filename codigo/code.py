@@ -44,7 +44,7 @@ def calcular_desvio(variancia_valor: float) -> float:
 def calcular_coef_variacao(desvio: float, media_valor: float) -> float:
     return round((desvio / media_valor) * 100, 2) if media_valor != 0 else 0.0
 
-def calcular_moda(dados: dict) -> (str, list, int):
+def calcular_moda(dados: dict) -> tuple[str, list, int]:
     if not dados['Fi']:
         return ("Amodal", [], 0)
 
