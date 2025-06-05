@@ -31,37 +31,62 @@ linhas = st.number_input(
     "Quantos elementos (Xi) farão parte da sua tabela de amostras?",
     min_value=1,
     step=1,
-    format="%d"
+    format="%d",
+    key="num_linhas"
 )
 
 st.markdown("---")
 
+# Inicializar session_state para Xi e Fi
+if "Xi_inputs" not in st.session_state or len(st.session_state.Xi_inputs) != linhas:
+    st.session_state.Xi_inputs = [0 for _ in range(linhas)]
+if "Fi_inputs" not in st.session_state or len(st.session_state.Fi_inputs) != linhas:
+    st.session_state.Fi_inputs = [0 for _ in range(linhas)]
+
 st.subheader("Insira os valores de Xi e Fi")
-Xi_inputs = []
-Fi_inputs = []
 
 for i in range(int(linhas)):
     cols = st.columns(2)
-    xi_val = cols[0].number_input(
+    st.session_state.Xi_inputs[i] = cols[0].number_input(
         label=f"Xi do elemento #{i+1} ({unidade})" if unidade else f"Xi do elemento #{i+1}",
         key=f"xi_{i}",
         min_value=0,
         step=1,
-        format="%d"
+        format="%d",
+        value=st.session_state.Xi_inputs[i]
     )
-    fi_val = cols[1].number_input(
+    st.session_state.Fi_inputs[i] = cols[1].number_input(
         label=f"Fi do elemento #{i+1}",
         key=f"fi_{i}",
         min_value=0,
         step=1,
-        format="%d"
+        format="%d",
+        value=st.session_state.Fi_inputs[i]
     )
-    Xi_inputs.append(xi_val)
-    Fi_inputs.append(int(fi_val))
+
+st.markdown("---")
+
+opcoes = [
+    'Média', 
+    'Mediana', 
+    'Moda', 
+    'Variância', 
+    'Desvio Padrão', 
+    'Coeficiente de Variação', 
+    'Resumo Completo'
+]
+selecoes = st.multiselect(
+    "Escolha as estatísticas que deseja visualizar:",
+    options=opcoes,
+    default=['Resumo Completo']
+)
 
 st.markdown("---")
 
 if st.button("Calcular Estatísticas"):
+    Xi_inputs = st.session_state.Xi_inputs
+    Fi_inputs = st.session_state.Fi_inputs
+
     dados = {
         'Xi': [],
         'Fi': [],
@@ -89,31 +114,46 @@ if st.button("Calcular Estatísticas"):
 
     df = pd.DataFrame(dados)
 
-    resumo = {
-        'N': [total_n],
-        f'Média ({unidade})': [f"{media_valor}{unidade}" if unidade else f"{media_valor}"],
-        f'Mediana ({unidade})': [f"{mediana_valor}{unidade}" if unidade else f"{mediana_valor}"],
-        f'Moda ({unidade})': [f"{", ".join(str(x) for x in lista_moda)} (Fi={fi_moda})" if lista_moda else "Amodal"],
-        f'Variância ({unidade}²)': [f"{variancia_total}{unidade}²" if unidade else f"{variancia_total}"],
-        f'Desvio Padrão ({unidade})': [f"{desvio}{unidade}" if unidade else f"{desvio}"],
-        'Coef. Variação (%)': [f"{coef_var}%"]
-    }
-    df_resumo = pd.DataFrame(resumo)
-
     st.subheader("Tabela de Dados Detalhada")
     st.dataframe(df, use_container_width=True)
 
-    st.subheader("Resumo Estatístico")
-    st.dataframe(df_resumo, use_container_width=True)
-
-    st.markdown("---")
-    st.write(f"**Total de Observações (N):** {total_n}")
-    st.write(f"**Tipo de Moda:** {tipo_moda}")
-    if tipo_moda != 'Amodal':
-        st.write(f"**Valores Modal (Xi):** {', '.join(str(x) for x in lista_moda)} (Fi = {fi_moda})")
+    # Mostrar estatísticas de acordo com a seleção
+    if 'Resumo Completo' in selecoes:
+        st.subheader("Resumo Estatístico")
+        resumo = {
+            'N': [total_n],
+            f'Média ({unidade})': [f"{media_valor}{unidade}" if unidade else f"{media_valor}"],
+            f'Mediana ({unidade})': [f"{mediana_valor}{unidade}" if unidade else f"{mediana_valor}"],
+            f'Moda ({unidade})': [f"{', '.join(str(x) for x in lista_moda)} (Fi={fi_moda})" if lista_moda else "Amodal"],
+            f'Variância ({unidade}²)': [f"{variancia_total}{unidade}²" if unidade else f"{variancia_total}"],
+            f'Desvio Padrão ({unidade})': [f"{desvio}{unidade}" if unidade else f"{desvio}"],
+            'Coef. Variação (%)': [f"{coef_var}%"]
+        }
+        df_resumo = pd.DataFrame(resumo)
+        st.dataframe(df_resumo, use_container_width=True)
+        
+        if tipo_moda != 'Amodal':
+            st.write(f"**Moda ({tipo_moda}):** {', '.join(str(x) for x in lista_moda)} (Fi = {fi_moda})")
+        else:
+            st.write("**Amostra Amodal (sem moda definida)**")
     else:
-        st.write("**Amostra Amodal (sem moda definida)**")
-    
+        st.subheader("Resultados Selecionados:")
+        if 'Média' in selecoes:
+            st.write(f"**Média:** {media_valor}{unidade}" if unidade else f"**Média:** {media_valor}")
+        if 'Mediana' in selecoes:
+            st.write(f"**Mediana:** {mediana_valor}{unidade}" if unidade else f"**Mediana:** {mediana_valor}")
+        if 'Moda' in selecoes:
+            if tipo_moda != 'Amodal':
+                st.write(f"**Moda ({tipo_moda}):** {', '.join(str(x) for x in lista_moda)} (Fi = {fi_moda})")
+            else:
+                st.write("**Amostra Amodal (sem moda definida)**")
+        if 'Variância' in selecoes:
+            st.write(f"**Variância:** {variancia_total}{unidade}²" if unidade else f"**Variância:** {variancia_total}")
+        if 'Desvio Padrão' in selecoes:
+            st.write(f"**Desvio Padrão:** {desvio}{unidade}" if unidade else f"**Desvio Padrão:** {desvio}")
+        if 'Coeficiente de Variação' in selecoes:
+            st.write(f"**Coeficiente de Variação:** {coef_var}%")
+
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
